@@ -55,3 +55,4 @@ windows
 /lib/env.dart
 /lib/localenv.dart
 /lib/firebase_options.dart
+database.rules.json

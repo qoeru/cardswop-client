@@ -24,6 +24,3 @@ COPY . .
 RUN flutter pub get
 RUN flutter build web
 
-#nginx client 
-FROM nginx
-COPY --from=client /app/client/build/web /app/nginx/html

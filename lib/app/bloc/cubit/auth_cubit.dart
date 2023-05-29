@@ -100,7 +100,7 @@ class AuthCubit extends Cubit<AuthState> {
 
       var currentUid = auth.FirebaseAuth.instance.currentUser!.uid;
 
-      //добавить потом проверку на один и тот же суффик и один и тот же ник!
+      //добавить потом проверку на один и тот же суффикc и один и тот же ник!
       user = UserView(
         suffix: math.Random().nextInt(9000) + 1000,
         name: username,
@@ -110,10 +110,15 @@ class AuthCubit extends Cubit<AuthState> {
 
       // db.collection('swoppers').doc(currentUid).set(user!.toJson());
 
-      const uri = env.HOST + env.USERS_ENDPOINT;
+      // const uri = env.HOST + env.USERS_ENDPOINT;
 
-      var request =
-          await http.post(Uri.parse(uri), body: jsonEncode(user!.toJson()));
+      Map<String, String> headers = {
+        // "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json",
+      };
+
+      var request = await http.post(Uri.http(env.HOST, env.USERS_ENDPOINT),
+          headers: headers, body: jsonEncode(user!.toJson()));
 
       if (request.statusCode == 200) {
         emitEmailVerification();

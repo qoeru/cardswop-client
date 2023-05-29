@@ -1,7 +1,7 @@
-import 'package:ant_design_flutter/ant_design_flutter.dart';
 import 'package:cardswop/app/bloc/cubit/auth_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ionicons/ionicons.dart';
+import 'package:flutter/material.dart';
 
 class RegWidget extends StatefulWidget {
   const RegWidget({super.key});
@@ -11,58 +11,45 @@ class RegWidget extends StatefulWidget {
 }
 
 class _RegWidgetState extends State<RegWidget> {
-  String? password;
-  String? name;
-  String? email;
+  TextEditingController emailController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+  TextEditingController usernameController = TextEditingController();
 
   bool showPassword = false;
 
   @override
   Widget build(BuildContext context) {
-    bool loading = false;
-
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const TypographyTitle(
+          Text(
             'Регистрация',
-            level: 3,
+            style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 20),
-          Input(
-            value: name,
-            placeholder: 'Введите свой юзернейм',
+          TextFormField(
+            controller: usernameController,
+            decoration: InputDecoration(label: Text('Юзернейм')),
           ),
           const SizedBox(
             height: 10,
           ),
-          Input(
-            value: email,
-            placeholder: 'Введите свой email',
+          TextFormField(
+            controller: emailController,
+            decoration: InputDecoration(label: Text('Почта')),
           ),
           const SizedBox(height: 10),
-          Input(
-            value: password,
-            addonAfter: Button(
-                onClick: () {
-                  setState(() {
-                    showPassword = !showPassword;
-                  });
-                },
-                icon: showPassword
-                    ? const Icon(
-                        Ionicons.eye,
-                      )
-                    : const Icon(Ionicons.eye_off)),
+          TextFormField(
+            controller: passwordController,
+            decoration: InputDecoration(label: Text('Пароль')),
           ),
           const SizedBox(height: 20),
-          Button(
-            loading: loading,
-            onClick: () {
-              loading = true;
-              context.read<AuthCubit>().tryToRegister(name!, email!, password!);
+          TextButton(
+            onPressed: () {
+              context.read<AuthCubit>().tryToRegister(usernameController.text,
+                  emailController.text, passwordController.text);
             },
             child: const Text('Создать аккаунт'),
           ),

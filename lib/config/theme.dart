@@ -15,6 +15,8 @@ class BaseTheme extends ThemeExtension<BaseTheme> {
 
   final Color primaryColor, tertiaryColor, neutralColor;
 
+  // final scheme = ColorScheme.fromSeed(seedColor: primaryColor);
+
   @override
   ThemeExtension<BaseTheme> copyWith(
           {Color? primary, Color? tertiary, Color? neutral}) =>
@@ -34,7 +36,45 @@ class BaseTheme extends ThemeExtension<BaseTheme> {
     );
   }
 
-  ThemeData toThemeData() {
+  Scheme _scheme() {
+    final base = CorePalette.contentOf(primaryColor.value);
+    final primary = base.primary;
+    final tertiary = CorePalette.of(tertiaryColor.value).primary;
+    final neutral = CorePalette.of(neutralColor.value).neutral;
+    return Scheme(
+      primary: primary.get(40),
+      onPrimary: primary.get(100),
+      primaryContainer: primary.get(90),
+      onPrimaryContainer: primary.get(10),
+      secondary: base.secondary.get(40),
+      onSecondary: base.secondary.get(100),
+      secondaryContainer: base.secondary.get(90),
+      onSecondaryContainer: base.secondary.get(10),
+      tertiary: tertiary.get(40),
+      onTertiary: tertiary.get(100),
+      tertiaryContainer: tertiary.get(90),
+      onTertiaryContainer: tertiary.get(10),
+      error: base.error.get(90),
+      onError: base.error.get(100),
+      errorContainer: base.error.get(90),
+      onErrorContainer: base.error.get(10),
+      background: neutral.get(99),
+      onBackground: neutral.get(10),
+      surface: neutral.get(99),
+      onSurface: neutral.get(10),
+      outline: base.neutralVariant.get(50),
+      outlineVariant: base.neutralVariant.get(80),
+      shadow: neutral.get(0),
+      scrim: neutral.get(0),
+      inverseSurface: neutral.get(20),
+      inverseOnSurface: neutral.get(95),
+      inversePrimary: primary.get(80),
+      surfaceVariant: base.neutralVariant.get(90),
+      onSurfaceVariant: base.neutralVariant.get(30),
+    );
+  }
+
+  ThemeData _base(ColorScheme colorScheme) {
     final primaryTextTheme = GoogleFonts.robotoFlexTextTheme();
     final condensedTextTheme = GoogleFonts.robotoCondensedTextTheme();
     final monoTextTheme = GoogleFonts.robotoMonoTextTheme();
@@ -42,11 +82,26 @@ class BaseTheme extends ThemeExtension<BaseTheme> {
     // final textTheme = primaryTextTheme.copyWith(
     //   displaySmall: condensedTextTheme.displaySmall;
     // );
+
     final textTheme = primaryTextTheme;
+
+    // final isLight = colorScheme.brightness == Brightness.light;
     return ThemeData(
-      useMaterial3: true,
-      textTheme: textTheme,
-    );
+        textTheme: textTheme,
+        extensions: [this],
+        colorSchemeSeed: primaryColor,
+        useMaterial3: true,
+        filledButtonTheme: FilledButtonThemeData(
+            style: ButtonStyle(visualDensity: VisualDensity.comfortable))
+        // scaffoldBackgroundColor: ,
+        // scaffoldBackgroundColor: isLight ? neutralColor : colorScheme.background,
+        );
+  }
+
+  ThemeData toThemeData() {
+    final colorScheme = _scheme().toColorScheme(Brightness.light);
+
+    return _base(colorScheme).copyWith(brightness: colorScheme.brightness);
   }
 
   // Scheme _scheme()
@@ -61,40 +116,6 @@ class BaseTheme extends ThemeExtension<BaseTheme> {
 
   //   );
   // }
-
-  // static const lightColorScheme = ColorScheme(
-  //   brightness: Brightness.light,
-  //   primary: Color(0xFF9B4056),
-  //   onPrimary: Color(0xFFFFFFFF),
-  //   primaryContainer: Color(0xFFFFD9DE),
-  //   onPrimaryContainer: Color(0xFF3F0016),
-  //   secondary: Color(0xFF75565B),
-  //   onSecondary: Color(0xFFFFFFFF),
-  //   secondaryContainer: Color(0xFFFFD9DE),
-  //   onSecondaryContainer: Color(0xFF2B1519),
-  //   tertiary: Color(0xFF7A5832),
-  //   onTertiary: Color(0xFFFFFFFF),
-  //   tertiaryContainer: Color(0xFFFFDCBB),
-  //   onTertiaryContainer: Color(0xFF2B1700),
-  //   error: Color(0xFFBA1A1A),
-  //   errorContainer: Color(0xFFFFDAD6),
-  //   onError: Color(0xFFFFFFFF),
-  //   onErrorContainer: Color(0xFF410002),
-  //   background: Color(0xFFFFFBFF),
-  //   onBackground: Color(0xFF201A1B),
-  //   surface: Color(0xFFF6EEF6),
-  //   onSurface: Color(0xFF201A1B),
-  //   surfaceVariant: Color(0xFFF3DDE0),
-  //   onSurfaceVariant: Color(0xFF524345),
-  //   outline: Color(0xFF847375),
-  //   onInverseSurface: Color(0xFFFAEEEE),
-  //   inverseSurface: Color(0xFF362F2F),
-  //   inversePrimary: Color(0xFFFFB2BF),
-  //   shadow: Color(0xFF000000),
-  //   surfaceTint: Color(0xFF9B4056),
-  //   outlineVariant: Color(0xFFD6C2C4),
-  //   scrim: Color(0xFF000000),
-  // );
 
   // static const darkColorScheme = ColorScheme(
   //   brightness: Brightness.dark,
@@ -195,3 +216,19 @@ class CardTheme extends StatelessWidget {
 }
 
 // class CardTheme extends ThemeExtension<BaseTheme>
+extension on Scheme {
+  ColorScheme toColorScheme(Brightness brightness) {
+    return ColorScheme(
+        brightness: brightness,
+        primary: Color(primary),
+        onPrimary: Color(onPrimary),
+        secondary: Color(secondary),
+        onSecondary: Color(onSecondary),
+        error: Color(error),
+        onError: Color(onError),
+        background: Color(background),
+        onBackground: Color(onBackground),
+        surface: Color(surface),
+        onSurface: Color(onSurface));
+  }
+}

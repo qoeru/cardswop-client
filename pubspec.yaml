@@ -55,6 +55,9 @@ dependencies:
   shimmer: ^3.0.0
   image_downloader_web: ^2.0.2
   ionicons: ^0.2.2
+  # image: ^4.0.17
+  palette_generator: ^0.3.3+2
+  flutter_adaptive_scaffold: ^0.1.4
   # http: ^1.0.0
 
 

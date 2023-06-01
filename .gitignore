@@ -57,4 +57,4 @@ windows
 /lib/localenv.dart
 /lib/firebase_options.dart
 database.rules.json
-test/testVars.dart
+test/test_vars.dart

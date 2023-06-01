@@ -3,7 +3,7 @@ import 'package:cardswop/app/bloc/cubit/auth_cubit.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'testVars.dart';
+import 'test_vars.dart';
 
 void main() {
   group('Login', () {

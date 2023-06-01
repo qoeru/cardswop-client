@@ -1,97 +1,117 @@
 import 'dart:convert';
 import 'dart:math' as math;
-import 'package:domain/db.dart';
+import 'package:cardswop_shared/db.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'dart:developer';
+// ignore: depend_on_referenced_packages
 import 'package:http/http.dart' as http;
+import 'package:cardswop/globals.dart' as globals;
 import 'package:cardswop/localenv.dart' as env;
-// import 'package:cardswop/app/bloc/cubit/navigation_cubit.dart';
 
 part 'auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   AuthCubit() : super(AuthInitial());
   // final db = auth.FirebaseFirestore.instance;
-  bool isEmailVerified = false;
+  bool? isEmailVerified;
 
   UserView? user;
 
-  // void logIn(String emailAddress, String password) async {
-  //   try {
-  //     emit(LoginLoading());
+  void logIn(String emailAddress, String password) async {
+    try {
+      emit(LoginLoading());
+      await auth.FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: emailAddress, password: password);
 
-  //     await FirebaseAuth.instance
-  //         .signInWithEmailAndPassword(email: emailAddress, password: password);
+      var request = await http.put(
+        Uri.http(env.HOST, env.USERS_ENDPOINT),
+        headers: globals.corsHeaders,
+        body: jsonEncode({'uid': auth.FirebaseAuth.instance.currentUser!.uid}),
+      );
 
-  //     // user = Swopper()
+      if (request.statusCode != 200) {
+        throw Exception(
+            'unable-to-login, backend error, code:  ${request.statusCode}, body${request.body}');
+      }
 
-  //     // getAuth
+      user =
+          UserView.jsonDecode(jsonDecode(request.body) as Map<String, dynamic>);
 
-  //     var userInfo = await db
-  //         .collection('swoppers')
-  //         .doc(FirebaseAuth.instance.currentUser!.uid)
-  //         .get();
+      if (!auth.FirebaseAuth.instance.currentUser!.emailVerified) {
+        emit(LoggedWithoutEmailVerified());
+        isEmailVerified = false;
+        log('loggedd!');
+      } else {
+        isEmailVerified = true;
+        emit(LoggedIn());
+      }
+    } on auth.FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') {
+        emit(UnLoggedUserNotFound());
+        log('No user found for that email.');
+      } else if (e.code == 'wrong-password') {
+        emit(UnLoggedWrongPassword());
+        log('Wrong password provided for that user.');
+      } else if (e.code == 'invalid-email') {
+        log(e.code);
+        emit(UnLoggedInvalidEmail());
+      } else {
+        emit(UnLoggedError());
+      }
+    } on Exception catch (e) {
+      log(e.toString());
+      emit(UnLoggedError());
+    } catch (e) {
+      log(e.toString());
+      emit(UnLoggedError());
+    }
+  }
 
-  //     user = Swopper(
-  //       username: userInfo['username'],
-  //       uid: FirebaseAuth.instance.currentUser!.uid,
-  //       email: emailAddress,
-  //       prefix: userInfo['prefix'],
-  //     );
+  void checkAuthStatus(BuildContext context) async {
+    var tmpUser = auth.FirebaseAuth.instance.currentUser;
+    if (tmpUser != null) {
+      try {
+        var request = await http.put(
+          Uri.http(env.HOST, env.USERS_ENDPOINT),
+          headers: globals.corsHeaders,
+          body:
+              jsonEncode({'uid': auth.FirebaseAuth.instance.currentUser!.uid}),
+        );
 
-  //     if (!FirebaseAuth.instance.currentUser!.emailVerified) {
-  //       emit(LoggedWithoutEmailVerified());
-  //     } else {
-  //       emit(LoggedIn());
-  //     }
-  //   } on FirebaseAuthException catch (e) {
-  //     if (e.code == 'user-not-found') {
-  //       emit(UnLoggedUserNotFound());
-  //       log('No user found for that email.');
-  //     } else if (e.code == 'wrong-password') {
-  //       emit(UnLoggedWrongPassword());
-  //       log('Wrong password provided for that user.');
-  //     } else if (e.code == 'invalid-email') {
-  //       log(e.code);
-  //       emit(UnLoggedInvalidEmail());
-  //     } else {
-  //       emit(UnLoggedError());
-  //     }
-  //   }
-  // }
+        if (request.statusCode != 200) {
+          throw Exception(
+              'unable-to-login, backend error, code:  ${request.statusCode}, body${request.body}');
+        }
 
-  // void checkAuthStatus(BuildContext context) async {
-  //   var tmpUser = FirebaseAuth.instance.currentUser;
-  //   if (tmpUser != null) {
-  //     var userInfo = await db.collection('swoppers').doc(tmpUser.uid).get();
-  //     user = Swopper(
-  //       username: userInfo['username'],
-  //       prefix: userInfo['prefix'],
-  //       uid: tmpUser.uid,
-  //       email: tmpUser.email!,
-  //     );
-  //     if (tmpUser.emailVerified) {
-  //       emit(LoggedIn());
-  //     } else {
-  //       emit(LoggedWithoutEmailVerified());
-  //     }
-  //   }
-  // }
+        user = UserView.jsonDecode(
+            jsonDecode(request.body) as Map<String, dynamic>);
+      } on Exception catch (e) {
+        log(e.toString());
+        emit(AuthInitial());
+      }
+      if (tmpUser.emailVerified) {
+        isEmailVerified = true;
+        emit(LoggedIn());
+      } else {
+        isEmailVerified = false;
+        emit(LoggedWithoutEmailVerified());
+      }
+    }
+  }
 
-  // void closeAuth(BuildContext context) {
-  //   user = null;
-  //   FirebaseAuth.instance.signOut();
-  //   emit(AuthInitial());
-  //   // context.read<NavigationCubit>().switchToLogin();
-  // }
+  void closeAuth(BuildContext context) {
+    user = null;
+    isEmailVerified = null;
+    auth.FirebaseAuth.instance.signOut();
+    emit(AuthInitial());
+  }
 
   void tryToRegister(
       String username, String emailAddress, String password) async {
     try {
       emit(RegLoading());
-      // var doc = await db.collection('swoppers').doc(currentUid).get();
 
       await auth.FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailAddress,
@@ -108,22 +128,16 @@ class AuthCubit extends Cubit<AuthState> {
         email: emailAddress,
       );
 
-      // db.collection('swoppers').doc(currentUid).set(user!.toJson());
-
-      // const uri = env.HOST + env.USERS_ENDPOINT;
-
-      Map<String, String> headers = {
-        // "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json",
-      };
-
       var request = await http.post(Uri.http(env.HOST, env.USERS_ENDPOINT),
-          headers: headers, body: jsonEncode(user!.toJson()));
+          headers: globals.corsHeaders, body: jsonEncode(user!.jsonEncode()));
 
-      if (request.statusCode == 200) {
-        emitEmailVerification();
-        emit(LoggedWithoutEmailVerified());
+      if (request.statusCode != 201) {
+        throw Exception(
+            'unable-to-register, code: ${request.statusCode}, body${request.body}');
       }
+      emitEmailVerification();
+      isEmailVerified = false;
+      emit(LoggedWithoutEmailVerified());
     } on auth.FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') {
         emit(RegFailedWeakPassword());

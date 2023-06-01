@@ -91,7 +91,7 @@ class BaseTheme extends ThemeExtension<BaseTheme> {
         extensions: [this],
         colorSchemeSeed: primaryColor,
         useMaterial3: true,
-        filledButtonTheme: FilledButtonThemeData(
+        filledButtonTheme: const FilledButtonThemeData(
             style: ButtonStyle(visualDensity: VisualDensity.comfortable))
         // scaffoldBackgroundColor: ,
         // scaffoldBackgroundColor: isLight ? neutralColor : colorScheme.background,

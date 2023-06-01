@@ -1,7 +1,9 @@
 import 'package:cardswop/app/bloc/cubit/auth_cubit.dart';
+import 'package:context_menus/context_menus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:responsive_framework/responsive_breakpoints.dart';
+import 'package:cardswop/globals.dart' as globals;
 
 class RegWidget extends StatefulWidget {
   const RegWidget({super.key});
@@ -16,6 +18,29 @@ class _RegWidgetState extends State<RegWidget> {
   TextEditingController usernameController = TextEditingController();
 
   bool showPassword = false;
+
+  String? _selectedText;
+
+  Widget textFormField(String label, TextEditingController editingController) {
+    return TextFormField(
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Поле не должно быть пустым';
+        }
+        return null;
+      },
+      // textInputAction: ,
+      contextMenuBuilder: (context, editableTextState) {
+        var value = editableTextState.textEditingValue;
+        _selectedText = value.selection.textInside(value.text);
+
+        return globals.TextContextMenu(selectedText: _selectedText);
+      },
+      controller: editingController,
+      decoration: InputDecoration(
+          border: const OutlineInputBorder(), label: Text(label)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,13 +66,16 @@ class _RegWidgetState extends State<RegWidget> {
               const SizedBox(
                 height: 8,
               ),
-              TextFormField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                    border: OutlineInputBorder(), label: Text('Почта')),
-              ),
+              textFormField('Email', emailController),
+
               const SizedBox(height: 8),
               TextFormField(
+                contextMenuBuilder: (context, editableTextState) {
+                  var value = editableTextState.textEditingValue;
+                  _selectedText = value.selection.textInside(value.text);
+
+                  return globals.TextContextMenu(selectedText: _selectedText);
+                },
                 controller: passwordController,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -81,7 +109,7 @@ class _RegWidgetState extends State<RegWidget> {
                       emailController.text,
                       passwordController.text);
                 },
-                child: Text(
+                child: const Text(
                   'Создать аккаунт',
                 ),
               ),

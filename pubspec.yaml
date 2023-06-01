@@ -30,8 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  domain:
-    git: https://github.com/qoeru/cardswop-domain
+  cardswop_shared:
+    git: https://github.com/qoeru/cardswop-shared.git
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -54,11 +54,9 @@ dependencies:
   smooth_page_indicator: ^1.1.0
   shimmer: ^3.0.0
   image_downloader_web: ^2.0.2
-  ionicons: ^0.2.2
-  # image: ^4.0.17
+  line_icons: ^2.0.1
   palette_generator: ^0.3.3+2
   flutter_adaptive_scaffold: ^0.1.4
-  # http: ^1.0.0
 
 
 dev_dependencies:
@@ -84,9 +82,9 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/Icon-192.png
+    # - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

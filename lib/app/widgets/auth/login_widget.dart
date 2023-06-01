@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:cardswop/app/bloc/cubit/auth_cubit.dart';
 // import 'package:eva_icons_flutter/eva_icons_flutter.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +21,7 @@ class _LoginWidgetState extends State<LoginWidget> {
   final passwordController = TextEditingController();
   @override
   Widget build(BuildContext context) {
-    final _formKey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -29,7 +31,7 @@ class _LoginWidgetState extends State<LoginWidget> {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
             width: ResponsiveBreakpoints.of(context).isDesktop ? 350 : 300,
             child: Form(
-              key: _formKey,
+              key: formKey,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
@@ -85,10 +87,10 @@ class _LoginWidgetState extends State<LoginWidget> {
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: () {
-                      // if (_formKey.currentState!.validate()) {
-                      //   context.read<AuthCubit>().logIn(
-                      //       emailController.text, passwordController.text);
-                      // }
+                      if (formKey.currentState!.validate()) {
+                        context.read<AuthCubit>().logIn(
+                            emailController.text, passwordController.text);
+                      }
                     },
                     child: BlocBuilder<AuthCubit, AuthState>(
                       builder: (context, state) {
@@ -108,7 +110,9 @@ class _LoginWidgetState extends State<LoginWidget> {
                       listener: (context, state) {
                     if (state is LoggedIn ||
                         state is LoggedWithoutEmailVerified) {
+                      log('Logged inn!!');
                       context.goNamed('feed');
+
                       // Navigator.pushReplacement(
                       //     context,
                       //     MaterialPageRoute(

@@ -7,7 +7,7 @@ import 'package:cardswop/app/widgets/about_widget.dart';
 import 'package:cardswop/app/widgets/auth/login_widget.dart';
 import 'package:cardswop/app/widgets/auth/reg_widget.dart';
 import 'package:cardswop/app/widgets/card_widget.dart';
-import 'package:cardswop/app/widgets/home_widget.dart';
+import 'package:cardswop/app/widgets/feed_widget.dart';
 import 'package:cardswop/app/widgets/new_card/new_card_desktop_card_widget.dart';
 import 'package:cardswop/app/widgets/user_profile_widget.dart';
 import 'package:cardswop/config/theme.dart';
@@ -20,19 +20,20 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:responsive_framework/breakpoint.dart';
 import 'package:responsive_framework/responsive_breakpoints.dart';
+// ignore: depend_on_referenced_packages
 import 'package:flutter_web_plugins/url_strategy.dart';
 
-final GlobalKey<NavigatorState> _loggedNavigatorKey =
-    GlobalKey<NavigatorState>(debugLabel: 'logged');
-final GlobalKey<NavigatorState> _unloggedNavigatorKey =
-    GlobalKey<NavigatorState>(debugLabel: 'unlogged');
+// final GlobalKey<NavigatorState> _loggedNavigatorKey =
+//     GlobalKey<NavigatorState>(debugLabel: 'logged');
+// final GlobalKey<NavigatorState> _unloggedNavigatorKey =
+//     GlobalKey<NavigatorState>(debugLabel: 'unlogged');
 
 final _router = GoRouter(
   initialLocation: '/',
   // refreshListenable: ,
   routes: [
     ShellRoute(
-      navigatorKey: _unloggedNavigatorKey,
+      // navigatorKey: _unloggedNavigatorKey,
       pageBuilder: (context, state, child) => NoTransitionPage(
         child: UnLoggedPage(
           child: child,
@@ -43,7 +44,7 @@ final _router = GoRouter(
           path: '/',
           name: 'initial',
           pageBuilder: (context, state) =>
-              NoTransitionPage(child: AboutWidget()),
+              const NoTransitionPage(child: AboutWidget()),
           redirect: (context, state) {
             if (context.read<AuthCubit>().state is LoggedIn ||
                 context.read<AuthCubit>().state is LoggedWithoutEmailVerified) {
@@ -58,7 +59,7 @@ final _router = GoRouter(
           path: '/login',
           name: 'login',
           pageBuilder: (context, state) =>
-              NoTransitionPage(child: const LoginWidget()),
+              const NoTransitionPage(child: LoginWidget()),
           redirect: (context, state) {
             if (context.read<AuthCubit>().state is LoggedIn ||
                 context.read<AuthCubit>().state is LoggedWithoutEmailVerified) {
@@ -73,7 +74,8 @@ final _router = GoRouter(
         GoRoute(
           path: '/register',
           name: 'register',
-          pageBuilder: (context, state) => NoTransitionPage(child: RegWidget()),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: RegWidget()),
           redirect: (context, state) {
             if (context.read<AuthCubit>().state is LoggedIn ||
                 context.read<AuthCubit>().state is LoggedWithoutEmailVerified) {
@@ -86,89 +88,89 @@ final _router = GoRouter(
         ),
       ],
     ),
-    // ShellRoute(
-    //   navigatorKey: _loggedNavigatorKey,
-    //   builder: (context, state, child) => LoggedPage(
-    //     child: child,
-    //   ),
-    //   routes: [
-    //     GoRoute(
-    //       parentNavigatorKey: _loggedNavigatorKey,
-    //       name: 'feed',
-    //       path: '/feed',
-    //       pageBuilder: (context, state) {
-    //         // log(state.error);
-    //         return NoTransitionPage(child: Placeholder());
+    ShellRoute(
+      // navigatorKey: _loggedNavigatorKey,
+      builder: (context, state, child) => LoggedPage(
+        child: child,
+      ),
+      routes: [
+        GoRoute(
+          // parentNavigatorKey: _loggedNavigatorKey,
+          name: 'feed',
+          path: '/feed',
+          pageBuilder: (context, state) {
+            return const NoTransitionPage(child: Placeholder());
+          },
 
-    //         // HomeWidget());
-    //       },
+          // redirect: (context, state) {
+          //   if (context.read<AuthCubit>().state is! LoggedIn &&
+          //       context.read<AuthCubit>().state
+          //           is! LoggedWithoutEmailVerified) {
+          //     return '/';
+          //   }
+          //   return null;
+          // },
+          // builder: (context, state) => HomeWidget(),
+          routes: [
+            GoRoute(
+              name: 'card',
+              path: ':cardId',
+              pageBuilder: (context, state) => NoTransitionPage(
+                child: const Placeholder(),
 
-    //       // redirect: (context, state) {
-    //       //   if (context.read<AuthCubit>().state is! LoggedIn &&
-    //       //       context.read<AuthCubit>().state
-    //       //           is! LoggedWithoutEmailVerified) {
-    //       //     return '/';
-    //       //   }
-    //       //   return null;
-    //       // },
-    //       // builder: (context, state) => HomeWidget(),
-    //       routes: [
-    //         GoRoute(
-    //           name: 'card',
-    //           path: ':cardId',
-    //           pageBuilder: (context, state) => NoTransitionPage(
-    //             child: CardWidget(
-    //                 // cardId: state.pathParameters['cardId']!,
-    //                 card: state.extra as SwopCard),
-    //           ),
-    //           redirect: (context, state) {
-    //             if (context.read<AuthCubit>().state is! LoggedIn &&
-    //                 context.read<AuthCubit>().state
-    //                     is! LoggedWithoutEmailVerified) {
-    //               return '/';
-    //             }
-    //             return null;
-    //           },
-    //         )
-    //       ],
-    //       redirect: (context, state) {
-    //         if (context.read<AuthCubit>().state is! LoggedIn &&
-    //             context.read<AuthCubit>().state
-    //                 is! LoggedWithoutEmailVerified) {
-    //           return '/';
-    //         }
-    //         return null;
-    //       },
-    //     ),
-    //     GoRoute(
-    //       parentNavigatorKey: _loggedNavigatorKey,
-    //       path: '/newcard',
-    //       name: 'newcard',
-    //       pageBuilder: (context, state) => NoTransitionPage(
-    //         child: NewCardMaterialCardWidget(),
-    //       ),
-    //       redirect: (context, state) {
-    //         if (context.read<AuthCubit>().state is! LoggedIn &&
-    //             context.read<AuthCubit>().state
-    //                 is! LoggedWithoutEmailVerified) {
-    //           return '/login';
-    //         }
-    //         return null;
-    //       },
-    //     ),
-    //     GoRoute(
-    //       parentNavigatorKey: _loggedNavigatorKey,
-    //       path: '/:userId', // with underscrore instead of #
-    //       name: 'user',
-    //       pageBuilder: (context, state) => NoTransitionPage(
-    //         child: UserProfileWidget(
-    //           usernameWithPrefix: state
-    //               .pathParameters['userId']!, // with underscrore instead of #
-    //         ),
-    //       ),
-    //     ),
-    //   ],
-    // ),
+                // child: CardWidget(
+                //     // cardId: state.pathParameters['cardId']!,
+                //     card: state.extra as SwopCard),
+              ),
+              redirect: (context, state) {
+                if (context.read<AuthCubit>().state is! LoggedIn &&
+                    context.read<AuthCubit>().state
+                        is! LoggedWithoutEmailVerified) {
+                  return '/';
+                }
+                return null;
+              },
+            )
+          ],
+          redirect: (context, state) {
+            if (context.read<AuthCubit>().state is! LoggedIn &&
+                context.read<AuthCubit>().state
+                    is! LoggedWithoutEmailVerified) {
+              return '/';
+            }
+            return null;
+          },
+        ),
+        GoRoute(
+          // parentNavigatorKey: _loggedNavigatorKey,
+          path: '/newcard',
+          name: 'newcard',
+          pageBuilder: (context, state) => NoTransitionPage(
+            child: const Placeholder(),
+            // child: NewCardMaterialCardWidget(),
+          ),
+          redirect: (context, state) {
+            if (context.read<AuthCubit>().state is! LoggedIn &&
+                context.read<AuthCubit>().state
+                    is! LoggedWithoutEmailVerified) {
+              return '/login';
+            }
+            return null;
+          },
+        ),
+        GoRoute(
+          // parentNavigatorKey: _loggedNavigatorKey,
+          path: '/:userId', // with underscrore instead of #
+          name: 'user',
+          pageBuilder: (context, state) => NoTransitionPage(
+            child: UserProfileWidget(
+              usernameWithPrefix: state
+                  .pathParameters['userId']!, // with underscrore instead of #
+            ),
+          ),
+        ),
+      ],
+    ),
   ],
 );
 
@@ -193,7 +195,7 @@ void main() async {
         //   create: (context) => AddingCardCubit(),
         // ),
       ],
-      child: CardSwopApp(),
+      child: const CardSwopApp(),
     ),
   );
 }

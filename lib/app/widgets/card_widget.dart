@@ -35,14 +35,14 @@
 //             width: ResponsiveBreakpoints.of(context).isDesktop ? 500 : 250,
 //             alignment: Alignment.center,
 //             child: ContextMenuRegion(
-//               contextMenu: GenericContextMenu(buttonConfigs: [
-//                 ContextMenuButtonConfig('Сохранить изображение',
-//                     onPressed: () async {
-//                   if (kIsWeb) {
-//                     await WebImageDownloader.downloadImageFromWeb(
-//                         card.pictures[controller.page! as int]);
-//                   }
-//                 })
+              // contextMenu: GenericContextMenu(buttonConfigs: [
+              //   ContextMenuButtonConfig('Сохранить изображение',
+              //       onPressed: () async {
+              //     if (kIsWeb) {
+              //       await WebImageDownloader.downloadImageFromWeb(
+              //           card.pictures[controller.page! as int]);
+              //     }
+              //   })
 //               ]),
 //               child: PageView(
 //                 controller: controller,
@@ -148,14 +148,14 @@
 //   Widget build(BuildContext context) {
 //     // if (_scrollController.hasClients) _scrollController.jumpTo(0);
 
-//     var textContextMenu = GenericContextMenu(buttonConfigs: [
-//       ContextMenuButtonConfig('Копировать текст', onPressed: () {
-//         if (selectedText != null) {
-//           Clipboard.setData(ClipboardData(text: selectedText));
-//         }
-//         context.contextMenuOverlay.hide();
-//       })
-//     ]);
+    // var textContextMenu = GenericContextMenu(buttonConfigs: [
+    //   ContextMenuButtonConfig('Копировать текст', onPressed: () {
+    //     if (selectedText != null) {
+    //       Clipboard.setData(ClipboardData(text: selectedText));
+    //     }
+    //     context.contextMenuOverlay.hide();
+    //   })
+    // ]);
 
 //     return SingleChildScrollView(
 //       padding: EdgeInsets.all(8),

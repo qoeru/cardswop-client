@@ -1,74 +1,93 @@
-import 'package:context_menus/context_menus.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_downloader_web/image_downloader_web.dart';
+import 'localenv.dart';
 
-class TextContextMenu extends StatelessWidget {
-  const TextContextMenu({super.key, required this.selectedText});
+class Globals {
+  static const Map<String, String> corsHeaders = {};
 
-  final String? selectedText;
+  List<ListTile> imageContextMenu(BuildContext context, String? imgUrl) => [
+        ListTile(
+          title: const Text('Копировать изображение'),
+          onTap: () {},
+        ),
+        ListTile(
+          title: const Text('Скачать изображение'),
+          onTap: imgUrl == null
+              ? null
+              : () {
+                  Navigator.of(context).pop();
+                  WebImageDownloader.downloadImageFromWeb(imgUrl);
+                },
+        ),
+      ];
 
-  @override
-  Widget build(BuildContext context) {
-    return GenericContextMenu(
-      buttonConfigs: [
-        ContextMenuButtonConfig('Копировать текст', onPressed: () {
-          if (selectedText != null) {
-            Clipboard.setData(ClipboardData(text: selectedText!));
-          }
-          context.contextMenuOverlay.hide();
-        }),
-      ],
-    );
-  }
+  List<ListTile> textContextMenuButtons(
+          TextEditingController controller, BuildContext context) =>
+      [
+        ListTile(
+          title: const Text('Копировать'),
+          onTap: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        ListTile(
+            title: const Text('Вырезать'),
+            onTap: () {
+              Navigator.of(context).pop();
+              int start = controller.selection.start;
+              int end = controller.selection.end;
+              //Copy content
+              String content = controller.text.substring(start, end);
+              Clipboard.setData(ClipboardData(text: content));
+              //Cut content
+              String p1 = controller.text.substring(0, start);
+              String p2 = controller.text.substring(end);
+              controller.text = p1 + p2;
+              controller.selection =
+                  TextSelection.fromPosition(TextPosition(offset: start));
+            }),
+        ListTile(
+          title: const Text('Вставить'),
+          onTap: () async {
+            Navigator.of(context).pop();
+            int start = controller.selection.start;
+            int end = controller.selection.end;
+
+            String p1 = controller.text.substring(0, start);
+            String p2 = controller.text.substring(end);
+            controller.text = p1 + p2;
+            controller.selection =
+                TextSelection.fromPosition(TextPosition(offset: start));
+            String? value = (await Clipboard.getData("text/plain"))?.text;
+            if (value != null) {
+              String p1 = controller.text.substring(0, start);
+              String p2 = controller.text.substring(start);
+              controller.text = p1 + value + p2;
+              controller.selection = TextSelection.fromPosition(
+                  TextPosition(offset: start + value.length));
+              // Move cursor to end on paste, as one does on desktop :)
+              controller.selection = TextSelection.fromPosition(
+                  TextPosition(offset: start + value.length));
+            }
+          },
+        ),
+        ListTile(
+          title: const Text('Выбрать все'),
+          onTap: () {
+            Navigator.of(context).pop();
+
+            controller.selection = TextSelection(
+                baseOffset: 0, extentOffset: controller.text.length);
+          },
+        ),
+        ListTile(
+          title: const Text('Удалить'),
+          onTap: () {
+            Navigator.of(context).pop();
+
+            controller.clear();
+          },
+        ),
+      ];
 }
-
-class ImageContextMenu extends StatelessWidget {
-  const ImageContextMenu(
-      {super.key, required this.image, this.isAsset = false});
-
-  /// Может быть как и Uint8List, так и String, поэтому пока будет просто без explicit type annotation
-  final image;
-
-  /// Определяет является ли переданная строка путем к ассету или url
-  final bool isAsset;
-
-  @override
-  Widget build(BuildContext context) {
-    return GenericContextMenu(buttonConfigs: [
-      ContextMenuButtonConfig('Сохранить изображение', onPressed: () async {
-        if (kIsWeb) {
-          if (image is String && !isAsset) {
-            final ByteData bytes = await rootBundle.load(image);
-            final Uint8List list = bytes.buffer.asUint8List();
-            await WebImageDownloader.downloadImageFromUInt8List(
-                uInt8List: list);
-          }
-
-          if (image is Uint8List) {
-            await WebImageDownloader.downloadImageFromUInt8List(
-                uInt8List: image);
-          }
-          if (image is String && isAsset) {
-            await WebImageDownloader.downloadImageFromWeb(image);
-          }
-        }
-      })
-    ]);
-  }
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty('image', image));
-    properties.add(DiagnosticsProperty('image', image));
-  }
-}
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS, PUT',
-  'Access-Control-Allow-Headers': '*',
-  "Content-Type": "application/json",
-};

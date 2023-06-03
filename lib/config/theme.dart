@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'package:image/image.dart' as img;
 import 'package:palette_generator/palette_generator.dart';
+// ignore: depend_on_referenced_packages
 import 'package:material_color_utilities/material_color_utilities.dart';
 
 @immutable
@@ -87,9 +87,13 @@ class BaseTheme extends ThemeExtension<BaseTheme> {
 
     // final isLight = colorScheme.brightness == Brightness.light;
     return ThemeData(
+        cardTheme: const CardTheme(
+          elevation: 0,
+        ),
         textTheme: textTheme,
+        colorScheme: colorScheme,
         extensions: [this],
-        colorSchemeSeed: primaryColor,
+        // colorSchemeSeed: primaryColor,
         useMaterial3: true,
         filledButtonTheme: const FilledButtonThemeData(
             style: ButtonStyle(visualDensity: VisualDensity.comfortable))
@@ -98,24 +102,55 @@ class BaseTheme extends ThemeExtension<BaseTheme> {
         );
   }
 
-  ThemeData toThemeData() {
-    final colorScheme = _scheme().toColorScheme(Brightness.light);
+  ThemeData toThemeData(bool isDefault) {
+    ColorScheme scheme = isDefault
+        ? lightColorScheme
+        : _scheme().toColorScheme(Brightness.light);
 
-    return _base(colorScheme).copyWith(brightness: colorScheme.brightness);
+    return _base(scheme).copyWith(
+        navigationRailTheme: NavigationRailThemeData(
+          backgroundColor: scheme.onInverseSurface,
+        ),
+        navigationDrawerTheme: NavigationDrawerThemeData(
+          backgroundColor: lightColorScheme.onInverseSurface,
+        ),
+        scaffoldBackgroundColor: scheme.onInverseSurface,
+        brightness: Brightness.light);
   }
 
-  // Scheme _scheme()
-  // {
-  //   final base = CorePalette.of(primaryColor.value);
-  //   final primary = base.primary;
-  //   final tertiary = CorePalette.of(tertiaryColor.value).primary;
-  //   final neutral = CorePalette.of(neutralColor.value).neutral;
-  //   return Scheme(
-  //     primary: primary.get(40),
-  //     onPrimary:
-
-  //   );
-  // }
+  static const lightColorScheme = ColorScheme(
+    brightness: Brightness.light,
+    primary: Color(0xFF9C404C),
+    onPrimary: Color(0xFFFFFFFF),
+    primaryContainer: Color(0xFFFFDADB),
+    onPrimaryContainer: Color(0xFF40000F),
+    secondary: Color(0xFF765658),
+    onSecondary: Color(0xFFFFFFFF),
+    secondaryContainer: Color(0xFFFFDADB),
+    onSecondaryContainer: Color(0xFF2C1517),
+    tertiary: Color(0xFF775930),
+    onTertiary: Color(0xFFFFFFFF),
+    tertiaryContainer: Color(0xFFFFDDB5),
+    onTertiaryContainer: Color(0xFF2A1800),
+    error: Color(0xFFBA1A1A),
+    errorContainer: Color(0xFFFFDAD6),
+    onError: Color(0xFFFFFFFF),
+    onErrorContainer: Color(0xFF410002),
+    background: Color(0xFFFFFBFF),
+    onBackground: Color(0xFF201A1A),
+    outline: Color(0xFF857374),
+    onInverseSurface: Color(0xFFFBEEEE),
+    inverseSurface: Color(0xFF362F2F),
+    inversePrimary: Color(0xFFFFB2B8),
+    shadow: Color(0xFF000000),
+    surfaceTint: Color(0xFF9C404C),
+    outlineVariant: Color(0xFFD7C1C2),
+    scrim: Color(0xFF000000),
+    surface: Color(0xFFFFF8F7),
+    onSurface: Color(0xFF201A1A),
+    surfaceVariant: Color(0xFFF4DDDE),
+    onSurfaceVariant: Color(0xFF524344),
+  );
 
   // static const darkColorScheme = ColorScheme(
   //   brightness: Brightness.dark,
@@ -150,29 +185,10 @@ class BaseTheme extends ThemeExtension<BaseTheme> {
   //   outlineVariant: Color(0xFF524345),
   //   scrim: Color(0xFF000000),
   // );
-
-  // static var lightTheme = ThemeData(
-  //   useMaterial3: true,
-  //   // cardTheme: CardTheme(
-  //   //     elevation: 0,
-  //   //     shape: RoundedRectangleBorder(
-  //   //         borderRadius: BorderRadius.all(Radius.circular(20)))),
-  //   textTheme: GoogleFonts.sourceSansProTextTheme(),
-  //   colorScheme: lightColorScheme,
-  //   // inputDecorationTheme: InputDecorationTheme(
-  //   //   border: OutlineInputBorder(
-  //   //     borderRadius: BorderRadius.circular(10),
-  //   //     borderSide: const BorderSide(),
-  //   //   ),
-  //   //   isDense: true,
-  //   // ),
-  // );
-
-  // final  darkTheme = ThemeData(colorScheme: darkColorScheme);
 }
 
-class CardTheme extends StatelessWidget {
-  const CardTheme({
+class CardPostTheme extends StatelessWidget {
+  const CardPostTheme({
     super.key,
     required this.imageAsUint8List,
     required this.child,

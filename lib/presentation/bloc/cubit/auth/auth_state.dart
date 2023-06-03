@@ -7,9 +7,12 @@ class AuthInitial extends AuthState {}
 
 class LoginLoading extends AuthState {}
 
-class LoggedIn extends AuthState {}
+class LoggedIn extends AuthState {
+  final bool isEmailVerified;
 
-class LoggedWithoutEmailVerified extends AuthState {}
+  final UserView user;
+  LoggedIn({required this.isEmailVerified, required this.user});
+}
 
 class UnLoggedWrongPassword extends AuthState {}
 
@@ -20,8 +23,6 @@ class UnLoggedError extends AuthState {}
 class UnLoggedInvalidEmail extends AuthState {}
 
 class LoggedOut extends AuthState {}
-
-class RegSuccess extends AuthState {}
 
 class RegFailedWeakPassword extends AuthState {}
 

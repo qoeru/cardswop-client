@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math' as math;
+import 'package:cardswop/globals.dart';
 import 'package:cardswop_shared/db.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,17 +8,27 @@ import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'dart:developer';
 // ignore: depend_on_referenced_packages
 import 'package:http/http.dart' as http;
-import 'package:cardswop/globals.dart' as globals;
 import 'package:cardswop/localenv.dart' as env;
 
 part 'auth_state.dart';
 
-class AuthCubit extends Cubit<AuthState> {
+class AuthCubit extends Cubit<AuthState> with ChangeNotifier {
   AuthCubit() : super(AuthInitial());
-  // final db = auth.FirebaseFirestore.instance;
-  bool? isEmailVerified;
 
-  UserView? user;
+  // final db = auth.FirebaseFirestore.instance;
+
+  void _emitLogIn(var response) {
+    var user =
+        UserView.jsonDecode(jsonDecode(response.body) as Map<String, dynamic>);
+
+    if (!auth.FirebaseAuth.instance.currentUser!.emailVerified) {
+      emit(LoggedIn(isEmailVerified: false, user: user));
+      notifyListeners();
+    } else {
+      emit(LoggedIn(isEmailVerified: true, user: user));
+      notifyListeners();
+    }
+  }
 
   void logIn(String emailAddress, String password) async {
     try {
@@ -25,28 +36,18 @@ class AuthCubit extends Cubit<AuthState> {
       await auth.FirebaseAuth.instance
           .signInWithEmailAndPassword(email: emailAddress, password: password);
 
-      var request = await http.put(
+      var response = await http.put(
         Uri.http(env.HOST, env.USERS_ENDPOINT),
-        headers: globals.corsHeaders,
+        headers: Globals.corsHeaders,
         body: jsonEncode({'uid': auth.FirebaseAuth.instance.currentUser!.uid}),
       );
 
-      if (request.statusCode != 200) {
+      if (response.statusCode != 200) {
+        closeAuth();
         throw Exception(
-            'unable-to-login, backend error, code:  ${request.statusCode}, body${request.body}');
+            'unable-to-login, backend error, code:  ${response.statusCode}, body${response.body}');
       }
-
-      user =
-          UserView.jsonDecode(jsonDecode(request.body) as Map<String, dynamic>);
-
-      if (!auth.FirebaseAuth.instance.currentUser!.emailVerified) {
-        emit(LoggedWithoutEmailVerified());
-        isEmailVerified = false;
-        log('loggedd!');
-      } else {
-        isEmailVerified = true;
-        emit(LoggedIn());
-      }
+      _emitLogIn(response);
     } on auth.FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
         emit(UnLoggedUserNotFound());
@@ -69,43 +70,68 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  void checkAuthStatus(BuildContext context) async {
-    var tmpUser = auth.FirebaseAuth.instance.currentUser;
-    if (tmpUser != null) {
+  void getUserData(var fbUser) async {
+    if (fbUser == null) {
+      emit(AuthInitial());
+    } else {
       try {
-        var request = await http.put(
+        var response = await http.put(
           Uri.http(env.HOST, env.USERS_ENDPOINT),
-          headers: globals.corsHeaders,
+          headers: Globals.corsHeaders,
           body:
               jsonEncode({'uid': auth.FirebaseAuth.instance.currentUser!.uid}),
         );
 
-        if (request.statusCode != 200) {
+        if (response.statusCode != 200) {
           throw Exception(
-              'unable-to-login, backend error, code:  ${request.statusCode}, body${request.body}');
+              'unable-to-login, backend error, code:  ${response.statusCode}, body${response.body}');
         }
 
-        user = UserView.jsonDecode(
-            jsonDecode(request.body) as Map<String, dynamic>);
+        _emitLogIn(response);
+
+        // emit(LoggedWithoutEmailVerified());
+        // log('emitted!!!');
       } on Exception catch (e) {
+        closeAuth();
         log(e.toString());
-        emit(AuthInitial());
-      }
-      if (tmpUser.emailVerified) {
-        isEmailVerified = true;
-        emit(LoggedIn());
-      } else {
-        isEmailVerified = false;
-        emit(LoggedWithoutEmailVerified());
+      } catch (e) {
+        closeAuth();
+        log(e.toString());
       }
     }
   }
 
-  void closeAuth(BuildContext context) {
-    user = null;
-    isEmailVerified = null;
+  void checkAuthStatus() async {
+    var tmpUser = auth.FirebaseAuth.instance.currentUser;
+    if (tmpUser != null) {
+      try {
+        var response = await http.put(
+          Uri.http(env.HOST, env.USERS_ENDPOINT),
+          headers: Globals.corsHeaders,
+          body:
+              jsonEncode({'uid': auth.FirebaseAuth.instance.currentUser!.uid}),
+        );
+
+        if (response.statusCode != 200) {
+          throw Exception(
+              'unable-to-login, backend error, code:  ${response.statusCode}, body${response.body}');
+        }
+
+        _emitLogIn(response);
+      } on Exception catch (e) {
+        closeAuth();
+        log(e.toString());
+      } catch (e) {
+        closeAuth();
+        log(e.toString());
+      }
+    }
+  }
+
+  void closeAuth() {
     auth.FirebaseAuth.instance.signOut();
     emit(AuthInitial());
+    notifyListeners();
   }
 
   void tryToRegister(
@@ -121,7 +147,7 @@ class AuthCubit extends Cubit<AuthState> {
       var currentUid = auth.FirebaseAuth.instance.currentUser!.uid;
 
       //добавить потом проверку на один и тот же суффикc и один и тот же ник!
-      user = UserView(
+      var user = UserView(
         suffix: math.Random().nextInt(9000) + 1000,
         name: username,
         uid: currentUid,
@@ -129,15 +155,15 @@ class AuthCubit extends Cubit<AuthState> {
       );
 
       var request = await http.post(Uri.http(env.HOST, env.USERS_ENDPOINT),
-          headers: globals.corsHeaders, body: jsonEncode(user!.jsonEncode()));
+          headers: Globals.corsHeaders, body: jsonEncode(user.jsonEncode()));
 
       if (request.statusCode != 201) {
         throw Exception(
             'unable-to-register, code: ${request.statusCode}, body${request.body}');
       }
       emitEmailVerification();
-      isEmailVerified = false;
-      emit(LoggedWithoutEmailVerified());
+
+      emit(LoggedIn(isEmailVerified: false, user: user));
     } on auth.FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') {
         emit(RegFailedWeakPassword());

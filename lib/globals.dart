@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_downloader_web/image_downloader_web.dart';
-import 'localenv.dart';
 
 class Globals {
-  static const Map<String, String> corsHeaders = {};
-
   List<ListTile> imageContextMenu(BuildContext context, String? imgUrl) => [
         ListTile(
           title: const Text('Копировать изображение'),
@@ -22,13 +19,18 @@ class Globals {
         ),
       ];
 
-  List<ListTile> textContextMenuButtons(
+  List<ListTile> textContextMenuEditingController(
           TextEditingController controller, BuildContext context) =>
       [
         ListTile(
           title: const Text('Копировать'),
           onTap: () {
             Navigator.of(context).pop();
+            int start = controller.selection.start;
+            int end = controller.selection.end;
+            //Copy content
+            String content = controller.text.substring(start, end);
+            Clipboard.setData(ClipboardData(text: content));
           },
         ),
         ListTile(
@@ -89,5 +91,27 @@ class Globals {
             controller.clear();
           },
         ),
+      ];
+
+  List<ListTile> textContextMenuSelectionController(
+          String? selectedText, BuildContext context) =>
+      [
+        if (selectedText != null)
+          ListTile(
+            title: const Text('Копировать'),
+            onTap: () {
+              Navigator.of(context).pop();
+
+              Clipboard.setData(ClipboardData(text: selectedText));
+            },
+          ),
+        if (selectedText == null)
+          const ListTile(
+            title: Text(
+              'Копировать',
+              style: TextStyle(color: Colors.black26),
+            ),
+            onTap: null,
+          )
       ];
 }

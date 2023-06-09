@@ -1,36 +1,41 @@
 // ignore: depend_on_referenced_packages
 import 'package:bloc/bloc.dart';
-
 import 'package:cardswop/presentation/bloc/cubit/auth/auth_cubit.dart';
+
 import 'package:cardswop/presentation/pages/logged_page.dart';
 import 'package:cardswop/presentation/pages/unlogged_page.dart';
 import 'package:cardswop/presentation/widgets/about_widget.dart';
 import 'package:cardswop/presentation/widgets/auth/login_widget.dart';
 import 'package:cardswop/presentation/widgets/auth/reg_widget.dart';
+import 'package:cardswop/presentation/widgets/card_widget.dart';
+import 'package:cardswop/presentation/widgets/feed_widget.dart';
+import 'package:cardswop/presentation/widgets/new_card_widget.dart';
 import 'package:cardswop/presentation/widgets/user_profile_widget.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 
 part 'router_state.dart';
 
 class RouterCubit extends Cubit<RouterState> {
-  RouterCubit({required this.authCubit}) : super(RouterInitial());
+  RouterCubit(this.authCubit) : super(RouterInitial());
 
   final AuthCubit authCubit;
 
-  int _selectedDestinationUnlogged = 0;
-  int _selectedDestinationLogged = 0;
+  final GlobalKey<NavigatorState> _unloggedNavigatorKey =
+      GlobalKey<NavigatorState>(debugLabel: 'unlogged');
+  final GlobalKey<NavigatorState> _loggedNavigatorKey =
+      GlobalKey<NavigatorState>(debugLabel: 'logged');
 
   late final GoRouter router = GoRouter(
     refreshListenable: authCubit,
     initialLocation: '/',
     routes: [
       ShellRoute(
-        // navigatorKey: _unloggedNavigatorKey,
+        navigatorKey: _unloggedNavigatorKey,
         pageBuilder: (context, state, child) {
           return NoTransitionPage(
             child: UnLoggedPage(
-              selectedIndex: _selectedDestinationUnlogged,
               child: child,
             ),
           );
@@ -38,28 +43,21 @@ class RouterCubit extends Cubit<RouterState> {
         routes: [
           GoRoute(
             path: '/',
-            name: 'initial',
-            pageBuilder: (context, state) {
-              _selectedDestinationUnlogged = 0;
-              return const NoTransitionPage(child: AboutWidget());
-            },
             redirect: (context, state) {
-              if (authCubit.state is LoggedIn) {
+              if (FirebaseAuth.instance.currentUser != null) {
                 return '/feed';
               }
-              return null;
+              return '/login';
             },
-            // builder: (context, state) => const Placeholder(),
           ),
           GoRoute(
             path: '/login',
             name: 'login',
             pageBuilder: (context, state) {
-              _selectedDestinationUnlogged = 1;
               return const NoTransitionPage(child: LoginWidget());
             },
             redirect: (context, state) {
-              if (authCubit.state is LoggedIn) {
+              if (FirebaseAuth.instance.currentUser != null) {
                 return '/feed';
               }
               return null;
@@ -70,11 +68,10 @@ class RouterCubit extends Cubit<RouterState> {
             path: '/register',
             name: 'register',
             pageBuilder: (context, state) {
-              _selectedDestinationUnlogged = 2;
-              return NoTransitionPage(child: RegWidget());
+              return const NoTransitionPage(child: RegWidget());
             },
             redirect: (context, state) {
-              if (authCubit.state is LoggedIn) {
+              if (FirebaseAuth.instance.currentUser != null) {
                 return '/feed';
               }
               return null;
@@ -84,20 +81,19 @@ class RouterCubit extends Cubit<RouterState> {
         ],
       ),
       ShellRoute(
-        // navigatorKey: _loggedNavigatorKey,
-        builder: (context, state, child) => LoggedPage(
-          selectedIndex: _selectedDestinationLogged,
-          child: child,
+        navigatorKey: _loggedNavigatorKey,
+        pageBuilder: (context, state, child) => NoTransitionPage(
+          // child: Placeholder(),
+          child: LoggedPage(
+            child: child,
+          ),
         ),
-
         routes: [
           GoRoute(
             // parentNavigatorKey: _loggedNavigatorKey,
             path: '/about',
             name: 'about',
             pageBuilder: (context, state) {
-              _selectedDestinationLogged = 2;
-
               return const NoTransitionPage(
                 child: Placeholder(), // with underscrore instead of #
               );
@@ -108,13 +104,11 @@ class RouterCubit extends Cubit<RouterState> {
             name: 'feed',
             path: '/feed',
             pageBuilder: (context, state) {
-              _selectedDestinationLogged = 0;
-              return const NoTransitionPage(child: Placeholder());
+              return const NoTransitionPage(child: FeedWidget());
             },
 
             redirect: (context, state) {
-              _selectedDestinationUnlogged = 0;
-              if (authCubit.state is! LoggedIn) {
+              if (FirebaseAuth.instance.currentUser == null) {
                 return '/';
               }
               return null;
@@ -122,13 +116,13 @@ class RouterCubit extends Cubit<RouterState> {
             routes: [
               GoRoute(
                 name: 'card',
-                path: ':cardId',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: Placeholder(),
+                path: 'card=:cardId',
+                pageBuilder: (context, state) => NoTransitionPage(
+                  // child: Placeholder(),
 
-                  // child: CardWidget(
-                  //     // cardId: state.pathParameters['cardId']!,
-                  //     card: state.extra as SwopCard),
+                  child: CardPage(
+                    cardId: state.pathParameters['cardId']!,
+                  ),
                 ),
               )
             ],
@@ -138,11 +132,13 @@ class RouterCubit extends Cubit<RouterState> {
             path: '/newcard',
             name: 'newcard',
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: Placeholder(),
+              child: NewCardWidget(),
+              // child: Placeholder()
+              // child: NewCardMaterialCardWidget(),
               // child: NewCardMaterialCardWidget(),
             ),
             redirect: (context, state) {
-              if (authCubit.state is! LoggedIn) {
+              if (FirebaseAuth.instance.currentUser == null) {
                 return '/login';
               }
               return null;
@@ -150,14 +146,14 @@ class RouterCubit extends Cubit<RouterState> {
           ),
           GoRoute(
             // parentNavigatorKey: _loggedNavigatorKey,
-            path: '/:userId', // with underscrore instead of #
+            path: '/user',
             name: 'user',
             pageBuilder: (context, state) {
-              _selectedDestinationLogged = 2;
               return NoTransitionPage(
+                // child: Placeholder(),
                 child: UserProfileWidget(
-                  usernameWithPrefix: state.pathParameters[
-                      'userId']!, // with underscrore instead of #
+                  username: state.queryParameters['username']!,
+                  suffix: int.parse(state.queryParameters['suffix']!),
                 ),
               );
             },

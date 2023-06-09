@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:math' as math;
-import 'package:cardswop/globals.dart';
-import 'package:cardswop_shared/db.dart';
+import 'package:cardswop_shared/cardswop_shared.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
@@ -15,18 +14,16 @@ part 'auth_state.dart';
 class AuthCubit extends Cubit<AuthState> with ChangeNotifier {
   AuthCubit() : super(AuthInitial());
 
-  // final db = auth.FirebaseFirestore.instance;
-
-  void _emitLogIn(var response) {
+  Swopper _emitLogIn(var response) {
     var user =
-        UserView.jsonDecode(jsonDecode(response.body) as Map<String, dynamic>);
+        Swopper.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
 
     if (!auth.FirebaseAuth.instance.currentUser!.emailVerified) {
       emit(LoggedIn(isEmailVerified: false, user: user));
-      notifyListeners();
+      return user;
     } else {
       emit(LoggedIn(isEmailVerified: true, user: user));
-      notifyListeners();
+      return user;
     }
   }
 
@@ -36,10 +33,14 @@ class AuthCubit extends Cubit<AuthState> with ChangeNotifier {
       await auth.FirebaseAuth.instance
           .signInWithEmailAndPassword(email: emailAddress, password: password);
 
-      var response = await http.put(
-        Uri.http(env.HOST, env.USERS_ENDPOINT),
-        headers: Globals.corsHeaders,
-        body: jsonEncode({'uid': auth.FirebaseAuth.instance.currentUser!.uid}),
+      var tmpUser = auth.FirebaseAuth.instance.currentUser;
+
+      if (tmpUser == null) {
+        throw Exception('user account is somehowc created, yet user is null');
+      }
+
+      var response = await http.get(
+        Uri.http(env.HOST, '${env.USERS_ENDPOINT}/${tmpUser.uid}'),
       );
 
       if (response.statusCode != 200) {
@@ -70,46 +71,12 @@ class AuthCubit extends Cubit<AuthState> with ChangeNotifier {
     }
   }
 
-  void getUserData(var fbUser) async {
-    if (fbUser == null) {
-      emit(AuthInitial());
-    } else {
-      try {
-        var response = await http.put(
-          Uri.http(env.HOST, env.USERS_ENDPOINT),
-          headers: Globals.corsHeaders,
-          body:
-              jsonEncode({'uid': auth.FirebaseAuth.instance.currentUser!.uid}),
-        );
-
-        if (response.statusCode != 200) {
-          throw Exception(
-              'unable-to-login, backend error, code:  ${response.statusCode}, body${response.body}');
-        }
-
-        _emitLogIn(response);
-
-        // emit(LoggedWithoutEmailVerified());
-        // log('emitted!!!');
-      } on Exception catch (e) {
-        closeAuth();
-        log(e.toString());
-      } catch (e) {
-        closeAuth();
-        log(e.toString());
-      }
-    }
-  }
-
-  void checkAuthStatus() async {
+  Future<Swopper?> checkAuthStatus() async {
     var tmpUser = auth.FirebaseAuth.instance.currentUser;
     if (tmpUser != null) {
       try {
-        var response = await http.put(
-          Uri.http(env.HOST, env.USERS_ENDPOINT),
-          headers: Globals.corsHeaders,
-          body:
-              jsonEncode({'uid': auth.FirebaseAuth.instance.currentUser!.uid}),
+        var response = await http.get(
+          Uri.http(env.HOST, '${env.USERS_ENDPOINT}/${tmpUser.uid}'),
         );
 
         if (response.statusCode != 200) {
@@ -117,7 +84,7 @@ class AuthCubit extends Cubit<AuthState> with ChangeNotifier {
               'unable-to-login, backend error, code:  ${response.statusCode}, body${response.body}');
         }
 
-        _emitLogIn(response);
+        return _emitLogIn(response);
       } on Exception catch (e) {
         closeAuth();
         log(e.toString());
@@ -126,16 +93,25 @@ class AuthCubit extends Cubit<AuthState> with ChangeNotifier {
         log(e.toString());
       }
     }
+    return null;
   }
 
-  void closeAuth() {
-    auth.FirebaseAuth.instance.signOut();
+  void closeAuth() async {
+    await auth.FirebaseAuth.instance.signOut();
     emit(AuthInitial());
     notifyListeners();
   }
 
   void tryToRegister(
-      String username, String emailAddress, String password) async {
+    String username,
+    String emailAddress,
+    String password,
+    List<String>? city,
+    int mailExchange,
+    String contactLink,
+    String galleryLink,
+    String exchangeValue,
+  ) async {
     try {
       emit(RegLoading());
 
@@ -146,20 +122,25 @@ class AuthCubit extends Cubit<AuthState> with ChangeNotifier {
 
       var currentUid = auth.FirebaseAuth.instance.currentUser!.uid;
 
-      //добавить потом проверку на один и тот же суффикc и один и тот же ник!
-      var user = UserView(
+      //TODO: добавить потом проверку на один и тот же суффикc и один и тот же ник!
+      var user = Swopper(
         suffix: math.Random().nextInt(9000) + 1000,
         name: username,
-        uid: currentUid,
+        id: currentUid,
         email: emailAddress,
+        galleryLink: (galleryLink.isEmpty) ? null : [galleryLink],
+        contactLink: [contactLink],
+        city: city,
+        mailExchange: mailExchange,
+        defaultExchangeValue: exchangeValue.isEmpty ? null : exchangeValue,
       );
 
-      var request = await http.post(Uri.http(env.HOST, env.USERS_ENDPOINT),
-          headers: Globals.corsHeaders, body: jsonEncode(user.jsonEncode()));
+      var response = await http.post(Uri.http(env.HOST, env.USERS_ENDPOINT),
+          body: jsonEncode(user.toJson()));
 
-      if (request.statusCode != 201) {
+      if (response.statusCode != 201) {
         throw Exception(
-            'unable-to-register, code: ${request.statusCode}, body${request.body}');
+            'unable-to-register, code: ${response.statusCode}, body${response.body}');
       }
       emitEmailVerification();
 

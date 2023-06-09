@@ -1,95 +1,110 @@
-// import 'dart:typed_data';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+// ignore: depend_on_referenced_packages
+import 'package:http/http.dart' as http;
+import 'dart:developer';
+import 'package:uuid/uuid.dart';
+import 'package:cardswop/presentation/bloc/cubit/auth/auth_cubit.dart';
+import 'package:cardswop/localenv.dart' as env;
+import 'package:cardswop_shared/cardswop_shared.dart' as prisma;
 
-// import 'package:cardswop/app/bloc/cubit/auth_cubit.dart';
-// import 'package:cardswop/domain/models/card.dart';
+part 'adding_card_state.dart';
 
-// import 'package:flutter/material.dart';
-// import 'package:flutter_bloc/flutter_bloc.dart';
+class AddingCardCubit extends Cubit<AddingCardState> {
+  AddingCardCubit() : super(AddingCardInitial());
 
-// import 'dart:developer';
-// // import 'package:image/image.dart' as img;
+  Future<String> getImagePath(Uint8List img, String imageName) async {
+    final String type;
 
-// part 'adding_card_state.dart';
+    if (imageName.endsWith('.png')) {
+      type = 'png';
+    } else if (imageName.endsWith('.jpg')) {
+      type = 'jpg';
+    } else {
+      throw Exception('unable-to-upload-image, wrong image type');
+    }
 
-// class AddingCardCubit extends Cubit<AddingCardState> {
-//   AddingCardCubit() : super(AddingCardInitial());
+    var response = await http.post(Uri.http(env.HOST, env.UPLOAD_ENDPOINT),
+        headers: {'type': type}, body: jsonEncode({'img': img}));
 
-//   //проверить будут ли сохраняться значения прошлого кубита если оставить поля нового пустыми
+    if (response.statusCode != 201) {
+      throw Exception(
+          'unable-to-upload-image, code: ${response.statusCode}, body${response.body}');
+    }
 
-//   // void getPicture(int index) {
-//   //   pictures[index].
+    var body = jsonDecode(response.body);
 
-//   // }
+    return 'http://${env.HOST}/cards_images/${body['img_path']}';
+  }
 
-//   Future<SwopCard> uploadCard(
-//       Map<String, Uint8List> pictures,
-//       String name,
-//       String exchangeValue,
-//       String size,
-//       String? description,
-//       int limited,
-//       BuildContext context) async {
-//     emit(AddingCardLoading());
-//     final db = 
-//     final db = FirebaseFirestore.instance;
-//     final uid = FirebaseAuth.instance.currentUser!.uid;
-//     final storageRef = FirebaseStorage.instance.ref();
+  void createCard(
+      Map<String, Uint8List> pictures,
+      String name,
+      String exchangeValue,
+      String size,
+      bool isWithCharacter,
+      String? description,
+      int limitedness,
+      prisma.Series? series,
+      List<String> material,
+      bool isDifferentVersions,
+      List<prisma.Card>? otherCards,
+      BuildContext context) async {
+    emit(AddingCardLoading());
 
-//     String currentUsername = context.read<AuthCubit>().user!.username;
-//     int currentUserprefix = context.read<AuthCubit>().user!.prefix;
+    var state = context.read<AuthCubit>().state;
 
-//     // String username = await db
-//     //     .collection('swoppers')
-//     //     .doc()
-//     //     .get()
-//     //     .then((value) => value['username']);
+    if (state is LoggedIn) {
+      prisma.Swopper user = state.user;
 
-//     List<String> pictureLinks = [];
+      List<String> pictureLinks = [];
 
-//     for (var i = 0; i < pictures.length; i++) {
-//       try {
-//         final cardInStorageRef =
-//             storageRef.child('$currentUsername/cards/${DateTime.now()}.jpeg');
-//         UploadTask uploadTask =
-//             cardInStorageRef.putData(pictures.values.elementAt(i));
-//         pictureLinks
-//             .add(await uploadTask.then((p0) => p0.ref.getDownloadURL()));
-//       } catch (e) {
-//         log(e.toString());
-//       }
-//     }
+      for (var i = 0; i < pictures.length; i++) {
+        try {
+          String path = await getImagePath(
+              pictures.values.elementAt(i), pictures.keys.elementAt(i));
+          pictureLinks.add(path);
+        } catch (e) {
+          emit(AddingCardFailed());
+        }
+      }
 
-//     // Swopper user = Swopper(username: username);
+      prisma.Card newCard = prisma.Card(
+        id: const Uuid().v4(),
+        size: size,
+        name: name,
+        uid: user.id,
+        description: description,
+        picturesUrl: pictureLinks,
+        exchangeValue: exchangeValue,
+        isWithCharacter: isWithCharacter,
+        limitedness: limitedness,
+        date: DateTime.now(),
+        material: material,
+        differentVersions: isDifferentVersions,
+      );
 
-//     SwopCard newCard = SwopCard(
-//       // cid: ,
-//       userprefix: currentUserprefix,
-//       name: name,
-//       exchangeValue: exchangeValue,
-//       username: currentUsername,
-//       uid: uid,
-//       date: DateTime.now(),
-//       pictures: pictureLinks,
-//       limited: limited,
-//       description: description ?? '',
-//       size: size,
-//     );
+      try {
+        var response = await http.post(Uri.http(env.HOST, env.CARDS_ENDPOINT),
+            body: jsonEncode(newCard.toJson()));
 
-//     // final db = FirebaseFirestore.instance;
+        if (response.statusCode != 201) {
+          throw Exception(
+              'unable-to-upload-card, code: ${response.statusCode}, body${response.body}');
+        }
+      } catch (e) {
+        emit(AddingCardFailed());
+        log(e.toString());
+        return;
+      }
 
-//     String newCardId =
-//         await db.collection('cards').add(newCard.toJson()).then((doc) {
-//       return doc.id;
-//       // return doc;
-//     });
-
-//     newCard.cid = newCardId;
-//     emit(AddingCardSuccess());
-//     return newCard;
-//   }
-
-//   // Future<String> uploadInfo(SwopCard newCard) async {
-
-//   //   return newCardId;
-//   // }
-// }
+      emit(AddingCardSuccess(card: newCard));
+      log('asdda');
+      return;
+    }
+    emit(AddingCardFailed());
+    log('ehhh');
+  }
+}

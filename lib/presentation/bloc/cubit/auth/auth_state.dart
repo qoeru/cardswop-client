@@ -10,7 +10,7 @@ class LoginLoading extends AuthState {}
 class LoggedIn extends AuthState {
   final bool isEmailVerified;
 
-  final UserView user;
+  final Swopper user;
   LoggedIn({required this.isEmailVerified, required this.user});
 }
 

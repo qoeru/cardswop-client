@@ -1,355 +1,243 @@
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:flutter/material.dart';
-// import 'package:cardswop/domain/models/card.dart';
-// import 'package:go_router/go_router.dart';
-// import 'dart:developer';
-// import 'package:responsive_framework/responsive_breakpoints.dart';
-// import 'package:shimmer/shimmer.dart';
+import 'package:card_loading/card_loading.dart';
+import 'package:cardswop/presentation/bloc/cubit/feed/feed_cubit.dart';
+import 'package:eva_icons_flutter/eva_icons_flutter.dart';
+import 'package:flutter/material.dart';
+import 'package:cardswop_shared/cardswop_shared.dart' as db;
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:go_router/go_router.dart';
 
-// class FeedTile extends StatelessWidget {
-//   const FeedTile({
-//     super.key,
-//     required this.card,
-//   });
+class FeedWidget extends StatefulWidget {
+  const FeedWidget({
+    super.key,
+  });
 
-//   final SwopCard card;
+  @override
+  State<FeedWidget> createState() => _FeedWidgetState();
+}
 
-//   Widget cardnameBox() {
-//     return Text(
-//       card.name,
-//       maxLines: 1,
-//       overflow: TextOverflow.ellipsis,
-//       style: TextStyle(fontWeight: FontWeight.bold),
-//     );
-//   }
+class _FeedWidgetState extends State<FeedWidget> {
+  bool isSortedByDateDesc = true;
 
-//   // Widget usernameBox() {
-//   //   return Container(
-//   //     // width: 230,
-//   //     child: OutlinedButton.icon(
-//   //         onPressed: () {},
-//   //         icon: const Icon(EvaIcons.personOutline),
-//   //         label: Text(
-//   //           userName,
-//   //           maxLines: 1,
-//   //           overflow: TextOverflow.ellipsis,
-//   //         )),
-//   //   );
-//   // }
+  bool showRegular = true;
+  bool showLimited = true;
+  bool showSpecial = true;
 
-//   Widget tagWrapper(String tag, Color color, BuildContext context) {
-//     return Container(
-//       margin: const EdgeInsets.all(2),
-//       padding: const EdgeInsets.all(4),
-//       decoration:
-//           BoxDecoration(borderRadius: BorderRadius.circular(40), color: color),
-//       child: Text(
-//         tag,
-//         style: Theme.of(context).textTheme.bodySmall,
-//       ),
-//     );
-//   }
+  Future<List<db.Card>?> getFeed(BuildContext context) async {
+    List<int> limitednesses = [];
+    if (showRegular == true) limitednesses.add(0);
+    if (showLimited == true) limitednesses.add(1);
+    if (showSpecial == true) limitednesses.add(2);
 
-//   Widget tags(BuildContext context) {
-//     return OverflowBar(
-//       overflowAlignment: OverflowBarAlignment.center,
-//       children: [
-//         if (card.limited == 0)
-//           tagWrapper(
-//               'Постоянная', Theme.of(context).colorScheme.surface, context),
-//         if (card.limited == 1)
-//           tagWrapper('Лимитная',
-//               Theme.of(context).colorScheme.tertiaryContainer, context),
-//         if (card.limited == 2)
-//           tagWrapper('Особая', Theme.of(context).colorScheme.primaryContainer,
-//               context),
-//         // tagWrapper(
-//         //     'Особая', Theme.of(context).colorScheme.surfaceVariant, context),
-//       ],
-//     );
-//   }
+    return await context
+        .read<FeedCubit>()
+        .getFeed(isSortedByDateDesc, limitednesses, 20);
+  }
 
-//   Widget previewPicture(BuildContext context) {
-//     return InkWell(
-//       onTap: () {
-//         context.goNamed('card',
-//             pathParameters: {'cardId': card.cid!}, extra: card);
-//       },
-//       child: Image.network(
-//         card.pictures[0],
-//         fit: BoxFit.fitHeight,
-//       ),
-//     );
-//   }
+  Widget cardPreview(String url, String cardId, int limitedness) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        splashFactory: NoSplash.splashFactory,
+        onTap: () {
+          context.goNamed('card', pathParameters: {'cardId': cardId});
+        },
+        child: Image.network(
+          url,
+          filterQuality: FilterQuality.high,
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
 
-//   // List<Widget> elements(BuildContext context) => [usernameBox(), previewPicture(context)];
+  Widget cardName(String name) {
+    return Text(
+      name,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: Theme.of(context).textTheme.titleLarge,
+    );
+  }
 
-//   @override
-//   Widget build(BuildContext context) {
-//     return Card(
-//       color: Theme.of(context).colorScheme.surface,
-//       clipBehavior: Clip.antiAlias,
-//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-//       elevation: 3,
-//       child: Column(
-//         mainAxisAlignment: MainAxisAlignment.start,
-//         crossAxisAlignment: CrossAxisAlignment.center,
-//         mainAxisSize: MainAxisSize.min,
-//         children: [
-//           Expanded(
-//             flex: 7,
-//             child: previewPicture(context),
-//           ),
-//           Expanded(
-//             flex: 2,
-//             child: Container(
-//               constraints: BoxConstraints.expand(),
-//               padding: EdgeInsets.all(4),
-//               // clipBehavior: Clip.antiAlias,
-//               color: Colors.white,
-//               child: Column(
-//                 children: [
-//                   cardnameBox(),
-//                   tags(context),
-//                 ],
-//               ),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
+  Widget sortColumn(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      width: 250,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            'Сортировка',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(
+            height: 8,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Radio(
+                groupValue: isSortedByDateDesc,
+                value: false,
+                onChanged: (value) {
+                  if (!showLimited && !showSpecial) {
+                    return;
+                  }
+                  setState(() {
+                    isSortedByDateDesc = value!;
+                  });
+                },
+              ),
+              const Text('Дата, сначала старые'),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Radio(
+                groupValue: isSortedByDateDesc,
+                value: true,
+                onChanged: (value) {
+                  if (!showLimited && !showSpecial) {
+                    return;
+                  }
+                  setState(() {
+                    isSortedByDateDesc = value!;
+                  });
+                },
+              ),
+              const Text('Дата, сначала новые'),
+            ],
+          ),
+          const Divider(
+            height: 24,
+          ),
+          Text(
+            'Тип',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(
+            height: 8,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: showRegular,
+                onChanged: (value) {
+                  if (!showLimited && !showSpecial) {
+                    return;
+                  }
+                  setState(() {
+                    showRegular = value!;
+                  });
+                },
+              ),
+              const Text('Регулярные'),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: showLimited,
+                onChanged: (value) {
+                  if (!showRegular && !showSpecial) {
+                    return;
+                  }
+                  setState(() {
+                    showLimited = value!;
+                  });
+                },
+              ),
+              const Text('Лимитированные'),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: showSpecial,
+                onChanged: (value) {
+                  if (!showRegular && !showLimited) {
+                    return;
+                  }
+                  setState(() {
+                    showSpecial = value!;
+                  });
+                },
+              ),
+              const Text('Особенные'),
+            ],
+          ),
+          const Divider(
+            height: 24,
+          ),
+          ElevatedButton(
+              onPressed: () {
+                context.goNamed('newcard');
+              },
+              child: const Text('Загрузить карточку'))
+        ],
+      ),
+    );
+  }
 
-// class HomeWidget extends StatelessWidget {
-//   HomeWidget({super.key});
+  final scrollController = ScrollController();
 
-//   // ScrollController scrollController = ScrollController();
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        sortColumn(context),
+        const VerticalDivider(),
+        Expanded(
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 16, top: 24, right: 24),
+              child: FutureBuilder(
+                  future: getFeed(context),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return Container(
+                          alignment: Alignment.center,
+                          child: const LinearProgressIndicator());
+                    }
 
-//   List<SwopCard> getCardsFromSnapshot(
-//       AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>> snapshot) {
-//     List<SwopCard> cards = [];
-//     if (!snapshot.hasData) {
-//       return [];
-//     }
-//     for (var doc in snapshot.data!.docs) {
-//       if (doc.exists) {
-//         cards.add(SwopCard.fromSnapshot(doc));
-//       }
-//     }
-//     return cards;
-//     // setState(() {});
-//   }
-
-//   Future<QuerySnapshot<Map<String, dynamic>>> getSnapshotByDate() async {
-//     return FirebaseFirestore.instance
-//         .collection('cards')
-//         .orderBy('date', descending: true)
-//         .limit(20)
-//         .get();
-//   }
-
-//   Future<QuerySnapshot<Map<String, dynamic>>> getSnapshotOnlyLimited() async {
-//     try {
-//       var tmp = FirebaseFirestore.instance
-//           .collection('cards')
-//           .orderBy('date', descending: true)
-//           .where('limited', isEqualTo: 1)
-//           .limit(20)
-//           .get();
-//       return tmp;
-//     } catch (e) {
-//       log(e.toString());
-//       rethrow;
-//     }
-//   }
-
-//   Future<QuerySnapshot<Map<String, dynamic>>> getSnapshotOnlyRegular() async {
-//     try {
-//       var tmp = FirebaseFirestore.instance
-//           .collection('cards')
-//           .where('limited', isEqualTo: 0)
-//           .orderBy('date', descending: true)
-//           .limit(20)
-//           .get();
-//       return tmp;
-//     } catch (e) {
-//       log(e.toString());
-//       rethrow;
-//     }
-//   }
-
-//   Widget loadingFeed(BuildContext context) {
-//     return Padding(
-//       padding: ResponsiveBreakpoints.of(context).isDesktop
-//           ? EdgeInsets.symmetric(
-//               horizontal: MediaQuery.of(context).size.width / 13)
-//           : EdgeInsets.zero,
-//       child: GridView.builder(
-//         // controller: scrollController,
-//         physics: const NeverScrollableScrollPhysics(),
-//         shrinkWrap: true,
-//         itemCount: 20,
-//         gridDelegate: ResponsiveBreakpoints.of(context).isDesktop
-//             ? const SliverGridDelegateWithFixedCrossAxisCount(
-//                 childAspectRatio: 3 / 4,
-//                 crossAxisCount: 5,
-//                 mainAxisSpacing: 5,
-//                 crossAxisSpacing: 8)
-//             : (ResponsiveBreakpoints.of(context).isTablet)
-//                 ? const SliverGridDelegateWithFixedCrossAxisCount(
-//                     childAspectRatio: 9 / 16,
-//                     crossAxisCount: 4,
-//                     mainAxisSpacing: 8,
-//                     crossAxisSpacing: 8)
-//                 : const SliverGridDelegateWithFixedCrossAxisCount(
-//                     childAspectRatio: 2.5 / 4,
-//                     crossAxisCount: 2,
-//                     mainAxisSpacing: 8,
-//                     crossAxisSpacing: 8),
-//         itemBuilder: (context, index) {
-//           return Card(
-//             color: Theme.of(context).colorScheme.surface,
-//             clipBehavior: Clip.antiAlias,
-//             shape:
-//                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-//             elevation: 3,
-//             child: Column(
-//               mainAxisAlignment: MainAxisAlignment.start,
-//               crossAxisAlignment: CrossAxisAlignment.center,
-//               mainAxisSize: MainAxisSize.min,
-//               children: [
-//                 Expanded(
-//                   flex: 7,
-//                   child: Shimmer.fromColors(
-//                     baseColor: Theme.of(context).colorScheme.primaryContainer,
-//                     highlightColor:
-//                         Theme.of(context).colorScheme.tertiaryContainer,
-//                     child: const SizedBox(),
-//                   ),
-//                 ),
-//                 Expanded(
-//                   flex: 2,
-//                   child: Container(
-//                     constraints: const BoxConstraints.expand(),
-//                     padding: const EdgeInsets.all(4),
-//                     // clipBehavior: Clip.antiAlias,
-//                     color: Colors.white,
-//                     child: Column(
-//                       children: [
-//                         Shimmer.fromColors(
-//                           baseColor:
-//                               Theme.of(context).colorScheme.primaryContainer,
-//                           highlightColor:
-//                               Theme.of(context).colorScheme.tertiaryContainer,
-//                           child: Container(
-//                             decoration: BoxDecoration(
-//                                 borderRadius: BorderRadius.circular(40),
-//                                 color: Colors.white),
-//                             child: const Text(
-//                               'name name name',
-//                               maxLines: 1,
-//                               overflow: TextOverflow.ellipsis,
-//                               style: TextStyle(fontWeight: FontWeight.bold),
-//                             ),
-//                           ),
-//                         ),
-//                         Shimmer.fromColors(
-//                           baseColor:
-//                               Theme.of(context).colorScheme.primaryContainer,
-//                           highlightColor:
-//                               Theme.of(context).colorScheme.tertiaryContainer,
-//                           child: Container(
-//                             margin: const EdgeInsets.all(2),
-//                             padding: const EdgeInsets.all(4),
-//                             decoration: BoxDecoration(
-//                                 borderRadius: BorderRadius.circular(40),
-//                                 color: Colors.white),
-//                             child: Text(
-//                               'adasasdasd',
-//                               style: Theme.of(context).textTheme.bodySmall,
-//                             ),
-//                           ),
-//                         ),
-//                       ],
-//                     ),
-//                   ),
-//                 ),
-//               ],
-//             ),
-//           );
-//         },
-//       ),
-//     );
-//   }
-
-//   Widget feedWith(List<SwopCard> cards, BuildContext context) {
-//     return Padding(
-//       padding: ResponsiveBreakpoints.of(context).isDesktop
-//           ? EdgeInsets.symmetric(
-//               horizontal: MediaQuery.of(context).size.width / 13)
-//           : EdgeInsets.zero,
-//       child: GridView.builder(
-//         physics: const NeverScrollableScrollPhysics(),
-//         // controller: scrollController,
-//         shrinkWrap: true,
-//         itemCount: cards.length,
-//         gridDelegate: ResponsiveBreakpoints.of(context).isDesktop
-//             ? const SliverGridDelegateWithFixedCrossAxisCount(
-//                 childAspectRatio: 3 / 4,
-//                 crossAxisCount: 5,
-//                 mainAxisSpacing: 5,
-//                 crossAxisSpacing: 8)
-//             : (ResponsiveBreakpoints.of(context).isTablet)
-//                 ? const SliverGridDelegateWithFixedCrossAxisCount(
-//                     childAspectRatio: 9 / 16,
-//                     crossAxisCount: 4,
-//                     mainAxisSpacing: 8,
-//                     crossAxisSpacing: 8)
-//                 : const SliverGridDelegateWithFixedCrossAxisCount(
-//                     childAspectRatio: 2.5 / 4,
-//                     crossAxisCount: 2,
-//                     mainAxisSpacing: 8,
-//                     crossAxisSpacing: 8),
-//         itemBuilder: (context, index) {
-//           return FeedTile(
-//             card: cards[index],
-//           );
-//         },
-//       ),
-//     );
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return SingleChildScrollView(
-//       // controller: scrollController,
-//       padding: EdgeInsets.all(8),
-//       child: Column(
-//         mainAxisSize: MainAxisSize.min,
-//         children: [
-//           Text(
-//             'Последние свопки',
-//             style: Theme.of(context).textTheme.headlineLarge,
-//           ),
-//           SizedBox(
-//             height: 8,
-//           ),
-//           FutureBuilder(
-//             future: getSnapshotByDate(),
-//             builder: (context, snapshot) {
-//               if (snapshot.connectionState == ConnectionState.waiting) {
-//                 return loadingFeed(context);
-//               }
-
-//               return feedWith(getCardsFromSnapshot(snapshot), context
-//                   // scrollController: scrollController,
-
-//                   );
-//             },
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
+                    List<db.Card>? cards = snapshot.data;
+                    return Column(
+                      children: [
+                        MasonryGridView.count(
+                          crossAxisCount: 4,
+                          mainAxisSpacing: 16,
+                          crossAxisSpacing: 16,
+                          itemCount: cards != null ? cards.length : 20,
+                          shrinkWrap: true,
+                          itemBuilder: ((context, index) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                cardPreview(cards![index].picturesUrl!.first,
+                                    cards[index].id, cards[index].limitedness),
+                                cardName(cards[index].name),
+                              ],
+                            );
+                          }),
+                        ),
+                        const Text('Вы долистали до конца! o_O')
+                      ],
+                    );
+                  }),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

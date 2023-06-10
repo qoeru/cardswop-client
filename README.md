@@ -1,7 +1,7 @@
 # cardswop, клиентская часть 
 
 Есть и другие!
-> [Серверная часть](https://github.com/qoeru/cardswop-server), [Domain Layer](https://github.com/qoeru/cardswop-shared)
+> [Серверная часть](https://github.com/qoeru/cardswop-server)
 
 ## [Preview](https://drive.google.com/file/d/1wNqMHmWK4jgSyofAxVKvAUaa-ibFMLUu/view?usp=sharing) (немного устарело)
 
